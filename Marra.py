@@ -1,27 +1,40 @@
 import discord
 from discord.ext import commands
 import asyncio
+from allie.handler import handle_allie_response  # 🔄 You’ll create this function in allie/handler.py
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# ✅ Global check: Only allow one user (you)
+# 🔒 Replace with your Discord user ID
+ALLOWED_USER_ID = Your ID
+
+# 🧠 Replace with the channel ID where Allie Protocol should respond
+ALLIE_CHANNEL_ID = Channel ID in which you will use the Intelligent bot  # 🚨 Replace this with your actual channel ID
+
 @bot.check
 async def globally_block_dms_and_users(ctx):
-    allowed_user_id = 12345678901234567  # Replace with your Discord ID
-    return ctx.author.id == allowed_user_id
+    return ctx.author.id == ALLOWED_USER_ID
 
-# ✅ Delete every command message (even if successful)
 @bot.event
 async def on_message(message):
-    if message.content.startswith('!') and not message.author.bot:
+    if message.author.bot:
+        return
+
+    # 👁️ Allie Protocol listens in a specific channel
+    if message.channel.id == ALLIE_CHANNEL_ID:
+        await handle_allie_response(message)  # 🔄 Async handler for OpenRouter/DeepSeek
+        return  # 🔕 Skip regular command processing
+
+    # 🧹 Delete !command messages (optional)
+    if message.content.startswith('!'):
         try:
             await message.delete()
         except:
             pass
+
     await bot.process_commands(message)
 
-# ✅ Silence all command errors from unauthorized users or missing commands
 @bot.event
 async def on_command_error(ctx, error):
     try:
@@ -29,20 +42,15 @@ async def on_command_error(ctx, error):
     except:
         pass
 
-    # Silently ignore permission issues or unknown commands
     if isinstance(error, (commands.CheckFailure, commands.CommandNotFound, commands.MissingRequiredArgument)):
         return
-
-    # Optional: log real issues
     print(f"[ERROR] {type(error).__name__}: {error}")
-
 
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Game(name="⚡ Allie protocol: initializing soon"))
     print(f"[OK] Logged in as {bot.user} (ID: {bot.user.id})")
     print("[READY] Marra is up and running!")
-
 
 async def load_cogs():
     extensions = [
@@ -62,6 +70,6 @@ async def load_cogs():
 async def main():
     async with bot:
         await load_cogs()
-        await bot.start("Your TOKEN")  # 🔐 Replace with your actual token
+        await bot.start("YourToken")  # 🔐 Replace with your actual bot token
 
 asyncio.run(main())
